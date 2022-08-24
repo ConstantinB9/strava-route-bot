@@ -1,0 +1,2 @@
+stravaweblib==0.0.6
+python-telegram-bot==20.0a2
