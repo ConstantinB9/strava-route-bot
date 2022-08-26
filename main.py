@@ -1,5 +1,6 @@
 import asyncio
 import cgi
+import logging
 import pathlib
 import re
 import time
@@ -12,6 +13,11 @@ from telegram import Update
 from telegram.ext import ApplicationBuilder, MessageHandler, ContextTypes, CommandHandler, \
     filters
 
+logging.basicConfig(
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO
+)
+
+logger = logging.getLogger(__name__)
 cfg_file = pathlib.Path(__name__).parent / 'config.toml'
 
 @dataclass
