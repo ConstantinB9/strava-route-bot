@@ -46,6 +46,11 @@ class _Config:
 cfg_data = toml.load(cfg_file.open("r"))
 Config = _Config(**cfg_data["Config"])
 
+share_regex = r"https:\/\/strava.app.link\/(\w+)"
+route_regex = r"https:\/\/www\.strava\.com\/routes\/(\d+)"
+activity_regex = r"https:\/\/www\.strava\.com\/activities\/(\d+)"
+
+
 
 class _RouteFetcher(WebClient):
     def __init__(self):
@@ -60,12 +65,23 @@ class _RouteFetcher(WebClient):
             Config.refresh_token = refresh_response["refresh_token"]
             Config.expires_at = refresh_response["expires_at"]
 
-        super().__init__(
-            access_token=Config.access_token,
-            # jwt=Config.jwt,
-            email=Config.email,
-            password=Config.password,
-        )
+        try:
+            super().__init__(
+                access_token=Config.access_token,
+                jwt=Config.jwt,
+                email=Config.email,
+                password=Config.password,
+            )
+        except ValueError as e:
+            logger.warn(str(e))
+            logger.info("JWT Expired, Fallback to email & password login")
+            super().__init__(
+                access_token=Config.access_token,
+                email=Config.email,
+                password=Config.password,
+            )
+
+            
         Config.jwt = self.jwt
         Config.save()
 
@@ -94,6 +110,11 @@ class _RouteFetcher(WebClient):
             for chunk in data:
                 f.write(chunk)
         return filename
+    
+    async def download_from_share_link(self, share_id) -> pathlib.Path:
+        resp = self._session.get(f"https://strava.app.link/{share_id}")
+        routes = set(re.findall(route_regex, resp.content.decode()))
+        return await self.download_route(routes.pop())
 
 
 RouteFetcher = _RouteFetcher()
@@ -102,12 +123,15 @@ RouteFetcher = _RouteFetcher()
 async def download_route(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     message = update.message.text
 
-    route_regex = r"https:\/\/www\.strava\.com\/routes\/(\d+)"
-    activity_regex = r"https:\/\/www\.strava\.com\/activities\/(\d+)"
-
     msg_processing = asyncio.create_task(update.message.reply_text("Downloading..."))
     downloads = []
     try:
+        downloads += await asyncio.gather(
+            *[
+                RouteFetcher.download_from_share_link(link_id)
+                for link_id in re.findall(share_regex, message)
+            ]
+        )
         downloads += await asyncio.gather(
             *[
                 RouteFetcher.download_route(route_id)
