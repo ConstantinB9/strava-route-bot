@@ -123,8 +123,8 @@ async def download_route(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     message = update.message.text
 
     downloads = []
-    if not any(re.match(regex,  message) for regex in (share_regex, route_regex, activity_regex)):
-        await update.message.reply_text("I did not find a link to a route or activity in your message.\n Check out \\start to learn more on how I work.")
+    if not any(re.search(regex,  message) for regex in (share_regex, route_regex, activity_regex)):
+        await update.message.reply_text("I did not find a link to a route or activity in your message.\n Check out /start to learn more on how I work.")
         return
     
     msg_processing = asyncio.create_task(update.message.reply_text("Downloading..."))
