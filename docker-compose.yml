@@ -1,6 +1,9 @@
-servermonitorbot:
-  container_name: strava-route-bot
-  restart: always
-  volumes:
-    - ./config.toml:/app/config.toml
-  image: constantinb9/strava-route-bot:latest
+version: '2'
+services:
+  servermonitorbot:
+    container_name: strava-route-bot
+    restart: always
+    network_mode: "host"
+    volumes:
+      - ./config.toml:/app/config.toml
+    image: constantinb9/strava-route-bot:latest
