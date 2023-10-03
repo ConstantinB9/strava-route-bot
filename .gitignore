@@ -132,3 +132,6 @@ dmypy.json
 *.tcx
 .venv
 .idea
+
+# IDEs
+.vscode
