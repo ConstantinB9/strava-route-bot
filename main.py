@@ -81,7 +81,6 @@ class _RouteFetcher(WebClient):
                 password=Config.password,
             )
 
-            
         Config.jwt = self.jwt
         Config.save()
 
@@ -123,8 +122,13 @@ RouteFetcher = _RouteFetcher()
 async def download_route(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     message = update.message.text
 
-    msg_processing = asyncio.create_task(update.message.reply_text("Downloading..."))
     downloads = []
+    if not any(re.match(regex,  message) for regex in (share_regex, route_regex, activity_regex)):
+        await update.message.reply_text("I did not find a link to a route or activity in your message.\n Check out \\start to learn more on how I work.")
+        return
+    
+    msg_processing = asyncio.create_task(update.message.reply_text("Downloading..."))
+
     try:
         downloads += await asyncio.gather(
             *[
@@ -144,8 +148,9 @@ async def download_route(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
                 for route_id in re.findall(activity_regex, message)
             ]
         )
+            
     except RuntimeError:
-        await update.message.reply_text("Download Failed")
+        await update.message.reply_text("Download Failed. Maybe the route or activity is not public?")
         if not downloads:
             msg = await msg_processing
             await msg.delete()
@@ -158,20 +163,17 @@ async def download_route(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
             for d in downloads
         ]
     )
-    [d.unlink() for d in downloads]
+    map(lambda d: d.unlink(), downloads)
     await delete_task
-
-    if not downloads:
-        await update.message.reply_text(
-            "Hi! You can paste any strava route link here, an I'll try to download the gpx "
-            "for you!"
-        )
 
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     await update.message.reply_text(
-        "Hi! You can paste any strava route link here, an I'll try to download the gpx "
-        "for you!"
+    """
+Hello 👋!
+You can send me a link to a Strava route or activity and I will try to download the .gpx file for you.
+As of right now I can only access public routes and activities so make sure that the link is for a public route / activity which any Strava user can see.
+"""
     )
 
 
